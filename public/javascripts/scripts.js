@@ -6,11 +6,18 @@ var $canvas;  // Canvas Node... this is an html node
 var context;  // Canvas Context... this is my connection to my canvas... WITH all the functions needed to draw
 var numRows = 100;  // How many rows?
 var numColumns = 100;  // How many columns?
-var aliveColor = 'rgb(145, 45, 45)';  // What should a living cell look like?
-var blockColor = 'rgb(200, 255, 255)';  // What should a non-living cell look like?
+var blockColor = 'rgb(250, 250, 250)';  // What should a non-living cell look like?
 var worldState;  //  What is the current state of the world?
 var blockSize = 15;  // How many pixels should each square cell be?
+var shape = 'none';
+var tickTime = 50;
 
+var aliveColors = ['red'];
+
+function aliveColor(){
+  var idx = Math.floor(Math.random() * aliveColors.length);
+  return aliveColors[idx];
+}
 
 // Empty matrix of undefindes...
 function worldGen(){                       // pretend numRows=3 & numColumns=2
@@ -39,7 +46,14 @@ function lifeWand(e){
   var y = e.offsetY; // Y: Where is the wand?
   var col = Math.floor(x/blockSize); // Column: Where is the wand with relation to the cells
   var row = Math.floor(y/blockSize); // Row:    Where is the wand with relation to the cells
-  worldState[row][col] = true; // Set the cell to living
+
+  // Set the cell to living a few times
+  setTimeout(function(){worldState[row][col] = true;}, tickTime);
+  setTimeout(function(){worldState[row][col] = true;}, tickTime*2);
+  setTimeout(function(){worldState[row][col] = true;}, tickTime*3);
+  setTimeout(function(){worldState[row][col] = true;}, tickTime*4);
+  setTimeout(function(){worldState[row][col] = true;}, tickTime*5);
+
   console.log('Life!');
 }
 
@@ -75,7 +89,7 @@ function tick() {
 
 
 
-function drawWorld() {
+function drawWorld(shape) {
   context.translate(0, 0); // This should not be needed... Andrew found it comforting to verify we are starting with a clean slate... which is should already do... given that we restore() on every draw...
   context.clearRect(0, 0, numRows*blockSize, numColumns*blockSize); // Clear all pixels... we are about to draw the board fresh
 
@@ -86,17 +100,21 @@ function drawWorld() {
 
       context.save(); // Save the state of the canvas
       context.translate(x, y);  // Set (0, 0) of the context to a new location
-      context.fillStyle = worldState[row][col] ? aliveColor : blockColor;  // Color based on living or not living
+      context.fillStyle = worldState[row][col] ? aliveColor() : blockColor;  // Color based on living or not living
 
-      // // *** DRAW CIRLCE **
-      context.beginPath();  // Place the pen on the papter
-      var nudge = blockSize/2.5;  // Just some random numbers to nudge things left/right
-      var radius = blockSize*1.5;  // For creative effect... make the cirlce size somewhat random
-      context.arc(nudge, nudge,  Math.random()*radius, 0, Math.random()*2*Math.PI);  // Draw a circle
-      context.fill(); // fill in the circle with color
-
-      // *** DRAW RECTANGLE **
-      // context.fillRect(0, 0, blockSize, blockSize);  // Draw a sqaure... It is at postion 0, 0 BECAUSE we translated before this
+      switch (shape) {
+      case 'circle':
+        // // *** DRAW CIRLCE **
+        context.beginPath();  // Place the pen on the papter
+        var nudge = blockSize/2.5;  // Just some random numbers to nudge things left/right
+        var radius = blockSize*1.5;  // For creative effect... make the cirlce size somewhat random
+        context.arc(nudge, nudge,  Math.random()*radius, 0, Math.random()*2*Math.PI);  // Draw a circle
+        context.fill(); // fill in the circle with color
+        break;
+      default:
+        // *** DRAW RECTANGLE **
+        context.fillRect(0, 0, blockSize, blockSize);  // Draw a sqaure... It is at postion 0, 0 BECAUSE we translated before this
+      }
 
       context.restore(); // Apply the changes
 
@@ -104,8 +122,23 @@ function drawWorld() {
   }
 }
 
+
+
+
+function getColors(){
+  $.ajax({
+    url: '/api/colors/random',
+    dataType: 'JSON',
+    success: function(data){
+      aliveColors = data;
+    }
+  });
+}
+
+
+
 function draw(){
-  drawWorld();
+  drawWorld(shape);
 }
 
 
@@ -138,6 +171,18 @@ $(function(){
     tick(); //  ... compute the next world state.
     draw(); //  ... redraw the world
     // console.table(worldState);
-  }, 100);
+  }, tickTime);
+
+
+  setInterval(function(){
+    getColors(); //  ... obtain a new array of colors
+  }, 1000);
+
+
+
+  $('button[name="shape-button"]').on('click', function(e){
+    shape = $(this).data('shape');
+  });
+
 
 });
